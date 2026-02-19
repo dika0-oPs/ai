@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Ansain Ai</title>
+    <title>Ansain AI</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/devicon.min.css">
@@ -36,25 +36,23 @@
         textarea { background: transparent; border: none; outline: none; color: white; flex: 1; resize: none; max-height: 120px; font-size: 0.95rem; padding: 10px 0; }
         .btn-send { background: var(--primary); width: 40px; height: 40px; border-radius: 14px; display: flex; align-items: center; justify-content: center; color: white; }
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .animate-spin-slow { animation: spin-slow 4s linear infinite; }
     </style>
 </head>
 <body>
     <div class="main-bg"></div>
-
-    <div id="loginPage" class="fixed inset-0 bg-black z-[3000] flex flex-col items-center justify-center p-6">
-        <div class="w-full max-w-sm space-y-6 text-center">
-            <div class="w-20 h-20 bg-purple-600/20 rounded-3xl flex items-center justify-center border border-purple-500/30 mx-auto">
-                <i class="fa-solid fa-user-shield text-3xl text-white"></i>
-            </div>
+    <div id="onboarding" class="fixed inset-0 bg-black z-[1000] flex flex-col items-center justify-center" style="display:none">
+        <div class="p-8 text-center space-y-6 w-full max-w-sm">
+            <h2 class="text-2xl font-black text-white uppercase italic tracking-tighter">Ansain Access</h2>
             <div class="space-y-4">
-                <input type="text" id="userInputLogin" class="w-full bg-white/5 border border-white/10 p-5 rounded-2xl text-center text-white outline-none focus:border-purple-500 font-bold" placeholder="Username">
-                <input type="password" id="passInputLogin" class="w-full bg-white/5 border border-white/10 p-5 rounded-2xl text-center text-white outline-none focus:border-purple-500 font-bold" placeholder="Password">
-                <button onclick="loginWithLocal()" id="loginBtn" class="w-full bg-white text-black p-5 rounded-2xl font-black uppercase tracking-widest active:scale-95 transition">Login</button>
+                <input type="text" id="userInputLogin" class="w-full bg-white/10 border border-white/20 p-5 rounded-2xl text-center text-white outline-none focus:border-purple-500 font-bold" placeholder="Username">
+                <input type="password" id="passInputLogin" class="w-full bg-white/10 border border-white/20 p-5 rounded-2xl text-center text-white outline-none focus:border-purple-500 font-bold" placeholder="Password">
             </div>
+            <button onclick="loginSystem()" id="loginBtn" class="w-full bg-purple-600 text-white p-5 rounded-2xl font-black uppercase tracking-widest active:scale-95 transition">Masuk Sistem</button>
             <p id="loginError" class="text-red-500 text-[10px] font-black uppercase hidden">Akses Ditolak!</p>
         </div>
     </div>
-
     <div id="modeTransition" class="fixed inset-0 bg-black/95 backdrop-blur-3xl z-[2000] hidden flex-col items-center justify-center">
         <div class="text-center">
             <div class="w-20 h-20 bg-white/5 rounded-3xl flex items-center justify-center mx-auto mb-6 border border-white/10">
@@ -63,27 +61,23 @@
             <h2 id="modeTitle" class="text-2xl font-black text-white tracking-tighter uppercase"></h2>
         </div>
     </div>
-
     <header>
         <div class="flex items-center gap-4">
-            <img id="userAvatar" src="https://i.ibb.co.com/zVykFCrG/wkcfhd.jpg" class="w-10 h-10 rounded-xl object-cover border border-white/20">
+            <img src="https://i.ibb.co.com/zVykFCrG/wkcfhd.jpg" class="w-10 h-10 rounded-xl object-cover border border-white/20">
             <div>
                 <div class="flex items-center gap-2">
-                    <h1 id="headerUserName" class="text-sm font-black text-white uppercase italic">ANSAIN AI</h1>
+                    <h1 class="text-sm font-black text-white">ANSAIN AI</h1>
                     <span id="digitalClock" class="text-[9px] font-mono font-bold text-white/40 bg-white/5 px-2 py-0.5 rounded border border-white/5">00:00:00</span>
                 </div>
-                <p id="labelMode" class="text-[8px] font-bold text-purple-400 uppercase tracking-widest">CONNECTED</p>
+                <p id="labelMode" class="text-[8px] font-bold text-purple-400 uppercase tracking-widest">CONNECTING</p>
             </div>
         </div>
-        <button onclick="logout()" class="text-gray-500 hover:text-red-500 transition-colors"><i class="fa-solid fa-right-from-bracket text-lg"></i></button>
+        <button onclick="clearChat()" class="text-gray-500 hover:text-red-500 transition-colors"><i class="fa-solid fa-rotate-right text-lg"></i></button>
     </header>
-
     <main id="chatDisplay" class="chat-container"></main>
-
     <div id="typingIndicator" class="hidden px-6 py-4">
         <div class="flex items-center gap-2 text-white/30 font-bold text-[9px] uppercase tracking-widest"><div class="w-2 h-2 bg-white/30 rounded-full animate-bounce"></div> Syncing...</div>
     </div>
-
     <div class="mode-bar">
         <div onclick="setMode('biasa')" class="mode-opt" id="m-biasa">BIASA</div>
         <div onclick="setMode('konten')" class="mode-opt" id="m-konten">KONTEN</div>
@@ -91,130 +85,211 @@
         <div onclick="setMode('white')" class="mode-opt" id="m-white">WHITE</div>
         <div onclick="setDarkAnsain()" class="mode-opt" id="m-dark">DARK</div>
     </div>
-
     <footer class="input-area">
+        <div id="musicPlayerContainer" class="mb-3 px-3 py-2 flex items-center justify-between bg-white/5 rounded-xl border border-white/10 backdrop-blur-md">
+            <div class="flex items-center gap-3 overflow-hidden">
+                <div class="w-8 h-8 bg-purple-600/20 rounded-lg flex items-center justify-center border border-purple-500/30">
+                    <i id="musicIcon" class="fa-solid fa-compact-disc text-purple-400"></i>
+                </div>
+                <div class="overflow-hidden">
+                    <p class="text-[8px] font-black text-purple-400 uppercase tracking-widest">Stream Active</p>
+                    <p id="songTitle" class="text-[10px] font-bold text-white truncate italic">Ready</p>
+                </div>
+            </div>
+            <button onclick="toggleMusic()" class="w-8 h-8 flex items-center justify-center bg-white/10 rounded-full text-white active:scale-90 transition">
+                <i id="playBtnIcon" class="fa-solid fa-play text-[10px]"></i>
+            </button>
+        </div>
         <div class="input-card">
             <textarea id="userInput" rows="1" placeholder="Kirim pesan..." oninput="autoResize(this)"></textarea>
             <button onclick="handleProcess()" class="btn-send"><i class="fa-solid fa-paper-plane"></i></button>
         </div>
     </footer>
-
     <script>
-        const keys = ["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"];
-        const localFile = "./akses.json";
-        
+        const keys = ["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", "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", "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"];
         let config = JSON.parse(localStorage.getItem('ansain_config')) || { name: '', mode: 'biasa' };
         let memory = JSON.parse(localStorage.getItem('ansain_history')) || [];
+        let currentTrack = new Audio();
+
+        const playlist = [
+            { name: "PACARKU DITIKUNG TEMEN", url: "https://semantic-teal-t3tdavv7gs.edgeone.app/pacarkuditikungtemen.mp3" },
+            { name: "LOFI STUDY", url: "https://files.freemusicarchive.org/storage-freemusicarchive-org/music/no_curator/Ketsa/Raising_Frequencies/Ketsa_-_09_-_Interlude.mp3" }
+        ];
+
+        const ngodingSong = { name: "PACARKU DITIKUNG TEMEN", url: "https://semantic-teal-t3tdavv7gs.edgeone.app/pacarkuditikungtemen.mp3" };
 
         function updateClock() {
             const now = new Date();
-            document.getElementById('digitalClock').innerText = now.toLocaleTimeString('en-GB');
+            const h = String(now.getHours()).padStart(2, '0'), m = String(now.getMinutes()).padStart(2, '0'), s = String(now.getSeconds()).padStart(2, '0');
+            document.getElementById('digitalClock').innerText = `${h}:${m}:${s}`;
         }
         setInterval(updateClock, 1000); updateClock();
 
-        async function loginWithLocal() {
+        async function loginSystem() {
             const u = document.getElementById('userInputLogin').value.trim();
             const p = document.getElementById('passInputLogin').value.trim();
             const btn = document.getElementById('loginBtn');
             const err = document.getElementById('loginError');
             if(!u || !p) return;
-
             btn.disabled = true;
             btn.innerText = 'VERIFYING...';
             err.classList.add('hidden');
-
             try {
-                const res = await fetch(localFile);
-                if(!res.ok) throw new Error();
+                const res = await fetch('./akses.json');
                 const data = await res.json();
-                
                 let match = null;
-                if (Array.isArray(data)) {
-                    match = data.find(item => item.user === u && item.pw === p);
-                } else if (data.user === u && data.pw === p) {
-                    match = data;
-                }
-                
+                if (Array.isArray(data)) match = data.find(i => i.user === u && i.pw === p);
+                else if (data.user === u && data.pw === p) match = data;
                 if(match) {
                     config.name = match.user;
                     localStorage.setItem('ansain_config', JSON.stringify(config));
-                    document.getElementById('loginPage').style.display = 'none';
-                    document.getElementById('headerUserName').innerText = config.name;
+                    document.getElementById('onboarding').style.display = 'none';
                     setMode(config.mode);
-                } else {
-                    throw new Error();
-                }
+                } else throw new Error();
             } catch {
                 err.classList.remove('hidden');
                 btn.disabled = false;
-                btn.innerText = 'LOGIN';
+                btn.innerText = 'MASUK SISTEM';
             }
         }
 
-        function logout() {
-            localStorage.removeItem('ansain_config');
-            location.reload();
+        function toggleMusic() {
+            const icon = document.getElementById('playBtnIcon');
+            const disc = document.getElementById('musicIcon');
+            if (currentTrack.paused) {
+                if (!currentTrack.src || currentTrack.src === "" || currentTrack.src.includes('null')) playMusic();
+                else {
+                    currentTrack.play().then(() => {
+                        icon.className = "fa-solid fa-pause text-[10px]";
+                        disc.classList.add('animate-spin-slow');
+                    }).catch(() => {
+                        document.getElementById('songTitle').innerText = "STREAM ERROR";
+                    });
+                }
+            } else {
+                currentTrack.pause();
+                icon.className = "fa-solid fa-play text-[10px]";
+                disc.classList.remove('animate-spin-slow');
+            }
         }
 
+        function playMusic() {
+            const icon = document.getElementById('playBtnIcon');
+            const disc = document.getElementById('musicIcon');
+            let selected;
+            if (config.mode === 'ngoding') {
+                selected = ngodingSong;
+                currentTrack.loop = true;
+            } else {
+                selected = playlist[Math.floor(Math.random() * playlist.length)];
+                currentTrack.loop = false;
+            }
+            currentTrack.src = selected.url;
+            document.getElementById('songTitle').innerText = selected.name.toUpperCase();
+            currentTrack.play().then(() => {
+                icon.className = "fa-solid fa-pause text-[10px]";
+                disc.classList.add('animate-spin-slow');
+            }).catch(() => {
+                document.getElementById('songTitle').innerText = "TAP PLAY TO START";
+                icon.className = "fa-solid fa-play text-[10px]";
+                disc.classList.remove('animate-spin-slow');
+            });
+        }
+
+        currentTrack.onended = () => { if (config.mode !== 'ngoding') playMusic(); };
+
         function setDarkAnsain() {
-            if(config.name.toLowerCase() !== 'dikz') { alert("OWNER ONLY"); return; }
+            if(config.name.toLowerCase() !== 'dika' && config.name.toLowerCase() !== 'dikz') { alert("ACCESS DENIED"); return; }
             setMode('dark');
         }
 
         function setMode(m) {
-            config.mode = m;
-            localStorage.setItem('ansain_config', JSON.stringify(config));
             document.body.classList.remove('dark-ansain-mode', 'white-ansain-mode');
             if(m === 'dark') document.body.classList.add('dark-ansain-mode');
             if(m === 'white') document.body.classList.add('white-ansain-mode');
+            config.mode = m;
+            localStorage.setItem('ansain_config', JSON.stringify(config));
+            localStorage.removeItem('ansain_history');
+            memory = [];
             document.getElementById('chatDisplay').innerHTML = '';
-            document.getElementById('labelMode').innerText = 'MODE ' + m;
-            document.querySelectorAll('.mode-opt').forEach(el => el.classList.remove('active'));
-            document.getElementById('m-'+m).classList.add('active');
-            appendUI(`halo bos ${config.name}, mode ${m} aktif.`, 'assistant');
+            playMusic();
+            const transition = document.getElementById('modeTransition');
+            const icon = document.getElementById('modeIcon');
+            icon.className = `fa-solid ${m === 'white' ? 'fa-shield-halved' : m === 'dark' ? 'fa-skull-crossbones' : 'fa-bolt'} text-4xl text-white`;
+            document.getElementById('modeTitle').innerText = "MODE " + m.toUpperCase();
+            transition.style.display = 'flex';
+            setTimeout(() => {
+                transition.style.display = 'none';
+                document.getElementById('labelMode').innerText = 'MODE ' + m;
+                document.querySelectorAll('.mode-opt').forEach(el => el.classList.remove('active'));
+                document.getElementById('m-'+m).classList.add('active');
+                appendUI(`halo bos ${config.name}, mode ${m} aktif.`, 'assistant');
+            }, 800);
+        }
+
+        function copyFromBase64(b64, btn) {
+            const text = decodeURIComponent(escape(atob(b64)));
+            const el = document.createElement('textarea');
+            el.value = text; document.body.appendChild(el); el.select();
+            try { document.execCommand('copy'); btn.innerHTML = '<i class="fa-solid fa-check text-green-400"></i>'; setTimeout(() => { btn.innerHTML = '<i class="fa-regular fa-copy"></i> COPY'; }, 2000); } catch (err) { alert("Gagal copy."); }
+            document.body.removeChild(el);
+        }
+
+        function getLangIcon(lang) {
+            const icons = { js: 'devicon-javascript-plain colored', javascript: 'devicon-javascript-plain colored', html: 'devicon-html5-plain colored', css: 'devicon-css3-plain colored', python: 'devicon-python-plain colored', py: 'devicon-python-plain colored', php: 'devicon-php-plain colored', sql: 'devicon-mysql-plain colored' };
+            return icons[lang.toLowerCase()] || 'fa-solid fa-code';
         }
 
         function formatResponse(t) {
+            let text = t;
+            const openTicks = (text.match(/```/g) || []).length;
+            if (openTicks % 2 !== 0) text += '\n```';
             const codeRegex = /```([a-z]*)\n([\s\S]*?)```/g;
-            return t.replace(codeRegex, (match, lang, code) => {
-                return `<div class="code-wrapper"><pre><code>${code.trim().replace(/</g, "&lt;").replace(/>/g, "&gt;")}</code></pre></div>`;
+            return text.replace(codeRegex, (match, lang, code) => {
+                const cleanCode = code.trim();
+                const b64 = btoa(unescape(encodeURIComponent(cleanCode)));
+                return `<div class="code-wrapper"><div class="code-header"><div><i class="${getLangIcon(lang || 'code')}"></i><span>${lang || 'code'}</span></div></div><pre><code>${cleanCode.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</code></pre><div class="copy-btn-container"><div class="copy-btn" onclick="copyFromBase64('${b64}', this)"><i class="fa-regular fa-copy"></i> COPY</div></div></div>`;
             }).replace(/\n/g, '<br>');
         }
 
         function autoResize(el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }
-        function appendUI(txt, role) {
+        function clearChat() { if(confirm('Hapus histori chat?')) { localStorage.removeItem('ansain_history'); memory = []; document.getElementById('chatDisplay').innerHTML = ''; } }
+
+        function appendUI(txt, role, save = true) {
             const box = document.getElementById('chatDisplay'), bubble = document.createElement('div');
             bubble.className = role === 'user' ? 'bubble-user' : 'bubble-ai';
-            bubble.innerHTML = formatResponse(txt);
             box.appendChild(bubble);
-            box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
+            if (role === 'assistant' && save) {
+                let i = 0; function typeWriter() { if (i < txt.length) { bubble.innerHTML = formatResponse(txt.substring(0, i + 1)); box.scrollTo({ top: box.scrollHeight }); i++; setTimeout(typeWriter, 10); } else { memory.push({ role, content: txt }); localStorage.setItem('ansain_history', JSON.stringify(memory)); } }
+                typeWriter();
+            } else { bubble.innerHTML = formatResponse(txt); box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' }); if (save) { memory.push({ role, content: txt }); localStorage.setItem('ansain_history', JSON.stringify(memory)); } }
         }
 
         async function handleProcess() {
             const input = document.getElementById('userInput'), query = input.value.trim();
             if(!query) return;
-            appendUI(query, 'user');
-            input.value = ''; input.style.height = 'auto';
+            appendUI(query, 'user'); input.value = ''; input.style.height = 'auto';
             document.getElementById('typingIndicator').classList.remove('hidden');
-            let sys = `kamu ansain ai buatan dika. gaya bahasa lowercase, santai, panggil 'bos'. dilarang pakai // di kode.`;
+            let sys = `kamu adalah ansain ai buatan dika. gaya bahasa lowercase, santai, panggil 'bos'. dilarang panggil 'cewe'. dilarang pakai // di kode. mode: ${config.mode}`;
             try {
                 const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-                    method: "POST", headers: { "Authorization": "Bearer " + keys[0], "Content-Type": "application/json" },
-                    body: JSON.stringify({ model: "llama-3.3-70b-versatile", messages: [{ role: "system", content: sys }, {role: "user", content: query}] })
+                    method: "POST", headers: { "Authorization": "Bearer " + keys[Math.floor(Math.random()*keys.length)], "Content-Type": "application/json" },
+                    body: JSON.stringify({ model: "llama-3.3-70b-versatile", messages: [{ role: "system", content: sys }, ...memory.slice(-50)] })
                 });
                 const data = await res.json();
                 document.getElementById('typingIndicator').classList.add('hidden');
                 appendUI(data.choices[0].message.content, 'assistant');
-            } catch { document.getElementById('typingIndicator').classList.add('hidden'); appendUI("error.", 'assistant'); }
+            } catch { document.getElementById('typingIndicator').classList.add('hidden'); appendUI("connection error.", 'assistant'); }
         }
 
-        window.onload = () => { 
-            if(config.name) { 
-                document.getElementById('loginPage').style.display = 'none'; 
-                document.getElementById('headerUserName').innerText = config.name;
-                setMode(config.mode); 
-            }
-        };
+        document.getElementById('userInput').addEventListener("keydown", e => { 
+            if (e.key === "Enter") {
+                e.stopPropagation(); if (e.shiftKey) return;
+                else { e.preventDefault(); const start = e.target.selectionStart, end = e.target.selectionEnd, value = e.target.value; e.target.value = value.substring(0, start) + "\n" + value.substring(end); e.target.selectionStart = e.target.selectionEnd = start + 1; autoResize(e.target); return false; }
+            } 
+        });
+
+        window.onload = () => { if(config.name) { document.getElementById('onboarding').style.display = 'none'; setMode(config.mode); } else document.getElementById('onboarding').style.display = 'flex'; };
     </script>
 </body>
 </html>
