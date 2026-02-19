@@ -18,9 +18,10 @@
         header, main, footer, .mode-bar { position: relative; z-index: 10; }
         header { padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
         .chat-container { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 20px; scrollbar-width: none; }
-        .bubble-ai { align-self: flex-start; max-width: 92%; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); padding: 16px; border-radius: 20px 20px 20px 5px; font-size: 0.95rem; line-height: 1.6; color: #f3f4f6; backdrop-filter: blur(12px); animation: fadeInUp 0.4s ease-out; }
+        .bubble-ai { align-self: flex-start; max-width: 92%; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); padding: 16px; border-radius: 20px 20px 20px 5px; font-size: 0.95rem; line-height: 1.6; color: #f3f4f6; backdrop-filter: blur(12px); animation: fadeInUp 0.4s ease-out; position: relative; }
         .bubble-user { align-self: flex-end; max-width: 85%; background: linear-gradient(135deg, var(--primary), #6366f1); padding: 12px 18px; border-radius: 20px 20px 5px 20px; font-size: 0.95rem; font-weight: 600; color: white; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3); animation: fadeInUp 0.4s ease-out; }
-        .code-wrapper { position: relative; margin: 15px 0; background: #0d0d0d; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.1); overflow: hidden; }
+        .code-wrapper { position: relative; margin: 15px 0; background: #0d0d0d; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.1); overflow: hidden; opacity: 0; transform: translateY(10px); animation: codeSlide 0.5s forwards; }
+        @keyframes codeSlide { to { opacity: 1; transform: translateY(0); } }
         .code-header { background: rgba(255, 255, 255, 0.05); padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
         .code-header div { display: flex; align-items: center; gap: 8px; }
         .code-header i { font-size: 14px; color: var(--primary); }
@@ -160,6 +161,7 @@
         let currentSessionId = localStorage.getItem('ansain_current_session') || null;
         let memory = [];
         let currentTrack = new Audio();
+        let isTyping = false;
 
         const playlist = [
             { name: "PACARKU DITIKUNG TEMEN", url: "https://semantic-teal-t3tdavv7gs.edgeone.app/pacarkuditikungtemen.mp3" },
@@ -192,7 +194,7 @@
             memory = [];
             localStorage.setItem('ansain_current_session', currentSessionId);
             document.getElementById('chatDisplay').innerHTML = '';
-            appendUI(`halo bos ${config.name}, sesi baru dimulai. ada yang bisa dibantu?`, 'assistant', false);
+            appendUI(`halo bos ${config.name}, sesi baru dimulai. ada yang bisa dibantu?`, 'assistant', false, true);
             toggleSidebar();
         }
 
@@ -207,10 +209,7 @@
                 const item = document.createElement('div');
                 item.className = `history-item ${session.id === currentSessionId ? 'active' : ''}`;
                 const title = session.messages.find(m => m.role === 'user')?.content || "Percakapan Baru";
-                item.innerHTML = `
-                    <p class="text-[11px] font-bold text-white truncate">${title}</p>
-                    <p class="text-[8px] text-white/30 uppercase mt-1">${new Date(parseInt(session.id)).toLocaleDateString()}</p>
-                `;
+                item.innerHTML = `<p class="text-[11px] font-bold text-white truncate">${title}</p><p class="text-[8px] text-white/30 uppercase mt-1">${new Date(parseInt(session.id)).toLocaleDateString()}</p>`;
                 item.onclick = () => loadSession(session.id);
                 container.appendChild(item);
             });
@@ -223,18 +222,15 @@
             memory = session.messages;
             localStorage.setItem('ansain_current_session', id);
             document.getElementById('chatDisplay').innerHTML = '';
-            memory.forEach(msg => appendUI(msg.content, msg.role, false));
+            memory.forEach(msg => appendUI(msg.content, msg.role, false, false));
             toggleSidebar();
         }
 
         function saveCurrentSession() {
             if(!currentSessionId) currentSessionId = Date.now().toString();
             const idx = chatSessions.findIndex(s => s.id === currentSessionId);
-            if(idx > -1) {
-                chatSessions[idx].messages = memory;
-            } else {
-                chatSessions.push({ id: currentSessionId, messages: memory });
-            }
+            if(idx > -1) chatSessions[idx].messages = memory;
+            else chatSessions.push({ id: currentSessionId, messages: memory });
             localStorage.setItem('ansain_sessions', JSON.stringify(chatSessions));
         }
 
@@ -261,17 +257,8 @@
             }
         }
 
-        function logout() {
-            if(confirm('Logout?')) { localStorage.clear(); location.reload(); }
-        }
-
-        function clearAllHistory() {
-            if(confirm('Hapus semua histori permanen?')) {
-                chatSessions = [];
-                localStorage.removeItem('ansain_sessions');
-                createNewChat();
-            }
-        }
+        function logout() { if(confirm('Logout?')) { localStorage.clear(); location.reload(); } }
+        function clearAllHistory() { if(confirm('Hapus semua histori permanen?')) { chatSessions = []; localStorage.removeItem('ansain_sessions'); createNewChat(); } }
 
         function toggleMusic() {
             const icon = document.getElementById('playBtnIcon'), disc = document.getElementById('musicIcon');
@@ -325,12 +312,35 @@
 
         function autoResize(el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }
 
-        function appendUI(txt, role, save = true) {
+        function appendUI(txt, role, save = true, animate = true) {
             const box = document.getElementById('chatDisplay'), bubble = document.createElement('div');
             bubble.className = role === 'user' ? 'bubble-user' : 'bubble-ai';
-            bubble.innerHTML = formatResponse(txt);
             box.appendChild(bubble);
-            box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
+
+            if (role === 'assistant' && animate) {
+                isTyping = true;
+                let i = 0;
+                const speed = 15;
+                const formatted = formatResponse(txt);
+                
+                function type() {
+                    if (i < txt.length) {
+                        bubble.innerHTML = formatResponse(txt.substring(0, i + 1));
+                        box.scrollTo({ top: box.scrollHeight });
+                        i++;
+                        setTimeout(type, speed);
+                    } else {
+                        isTyping = false;
+                        bubble.innerHTML = formatted;
+                        box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
+                    }
+                }
+                type();
+            } else {
+                bubble.innerHTML = formatResponse(txt);
+                box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
+            }
+
             if (save) {
                 memory.push({ role, content: txt });
                 saveCurrentSession();
@@ -338,6 +348,7 @@
         }
 
         async function handleProcess() {
+            if (isTyping) return;
             const input = document.getElementById('userInput'), query = input.value.trim();
             if(!query) return;
             appendUI(query, 'user'); input.value = ''; input.style.height = 'auto';
