@@ -35,6 +35,14 @@
         .input-card { background: rgba(255, 255, 255, 0.07); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 20px; padding: 5px 10px 5px 15px; display: flex; align-items: center; gap: 10px; }
         textarea { background: transparent; border: none; outline: none; color: white; flex: 1; resize: none; max-height: 120px; font-size: 0.95rem; padding: 10px 0; }
         .btn-send { background: var(--primary); width: 40px; height: 40px; border-radius: 14px; display: flex; align-items: center; justify-content: center; color: white; }
+        
+        #sidebar { position: fixed; top: 0; left: -300px; width: 300px; height: 100%; background: rgba(10, 10, 10, 0.98); backdrop-filter: blur(30px); z-index: 5000; transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1); border-right: 1px solid rgba(255, 255, 255, 0.1); }
+        #sidebar.active { left: 0; }
+        .sidebar-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 4999; display: none; }
+        .history-item { padding: 14px; border-radius: 14px; background: rgba(255,255,255,0.03); margin-bottom: 10px; cursor: pointer; transition: 0.2s; border: 1px solid rgba(255,255,255,0.05); }
+        .history-item:hover { background: rgba(255,255,255,0.08); border-color: var(--primary); }
+        .history-item.active { background: var(--primary); border-color: var(--primary); }
+
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         .animate-spin-slow { animation: spin-slow 4s linear infinite; }
@@ -42,6 +50,36 @@
 </head>
 <body>
     <div class="main-bg"></div>
+    
+    <div id="sidebar-overlay" class="sidebar-overlay" onclick="toggleSidebar()"></div>
+    <div id="sidebar" class="flex flex-col p-6">
+        <div class="flex items-center gap-4 mb-8 pb-6 border-b border-white/10">
+            <img src="https://i.ibb.co.com/zVykFCrG/wkcfhd.jpg" class="w-12 h-12 rounded-2xl border border-white/20">
+            <div>
+                <h3 id="sideUserName" class="text-lg font-black text-white uppercase italic tracking-tighter">USER</h3>
+                <p class="text-[9px] font-bold text-purple-400 tracking-widest uppercase">Verified Access</p>
+            </div>
+        </div>
+        
+        <button onclick="createNewChat()" class="w-full p-4 rounded-xl bg-purple-600 text-white text-[10px] font-black uppercase tracking-widest mb-6 flex items-center justify-center gap-2 active:scale-95 transition shadow-lg shadow-purple-900/20">
+            <i class="fa-solid fa-plus"></i> New Chat
+        </button>
+
+        <div class="flex-1 overflow-y-auto scrollbar-none">
+            <p class="text-[10px] font-black text-white/40 uppercase tracking-widest mb-4">Recent Sessions</p>
+            <div id="historyList"></div>
+        </div>
+
+        <div class="mt-auto pt-6 space-y-3">
+            <button onclick="clearAllHistory()" class="w-full p-4 rounded-xl bg-white/5 border border-white/10 text-[10px] font-bold text-white uppercase tracking-widest flex items-center gap-3 hover:bg-red-500/10 hover:border-red-500/30 transition">
+                <i class="fa-solid fa-trash-can text-red-500"></i> Delete All
+            </button>
+            <button onclick="logout()" class="w-full p-4 rounded-xl bg-white/5 border border-white/10 text-[10px] font-bold text-white uppercase tracking-widest flex items-center gap-3 hover:bg-white/10 transition">
+                <i class="fa-solid fa-right-from-bracket"></i> Logout
+            </button>
+        </div>
+    </div>
+
     <div id="onboarding" class="fixed inset-0 bg-black z-[1000] flex flex-col items-center justify-center" style="display:none">
         <div class="p-8 text-center space-y-6 w-full max-w-sm">
             <h2 class="text-2xl font-black text-white uppercase italic tracking-tighter">Ansain Access</h2>
@@ -53,6 +91,7 @@
             <p id="loginError" class="text-red-500 text-[10px] font-black uppercase hidden">Akses Ditolak!</p>
         </div>
     </div>
+
     <div id="modeTransition" class="fixed inset-0 bg-black/95 backdrop-blur-3xl z-[2000] hidden flex-col items-center justify-center">
         <div class="text-center">
             <div class="w-20 h-20 bg-white/5 rounded-3xl flex items-center justify-center mx-auto mb-6 border border-white/10">
@@ -61,23 +100,29 @@
             <h2 id="modeTitle" class="text-2xl font-black text-white tracking-tighter uppercase"></h2>
         </div>
     </div>
+
     <header>
         <div class="flex items-center gap-4">
-            <img src="https://i.ibb.co.com/zVykFCrG/wkcfhd.jpg" class="w-10 h-10 rounded-xl object-cover border border-white/20">
+            <button onclick="toggleSidebar()" class="w-10 h-10 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-white active:scale-90 transition">
+                <i class="fa-solid fa-bars-staggered"></i>
+            </button>
             <div>
                 <div class="flex items-center gap-2">
-                    <h1 class="text-sm font-black text-white">ANSAIN AI</h1>
+                    <h1 class="text-sm font-black text-white uppercase">ANSAIN AI</h1>
                     <span id="digitalClock" class="text-[9px] font-mono font-bold text-white/40 bg-white/5 px-2 py-0.5 rounded border border-white/5">00:00:00</span>
                 </div>
-                <p id="labelMode" class="text-[8px] font-bold text-purple-400 uppercase tracking-widest">CONNECTING</p>
+                <p id="labelMode" class="text-[8px] font-bold text-purple-400 uppercase tracking-widest">CONNECTED</p>
             </div>
         </div>
-        <button onclick="clearChat()" class="text-gray-500 hover:text-red-500 transition-colors"><i class="fa-solid fa-rotate-right text-lg"></i></button>
+        <img id="headerAvatar" src="https://i.ibb.co.com/zVykFCrG/wkcfhd.jpg" class="w-10 h-10 rounded-xl object-cover border border-white/20">
     </header>
+
     <main id="chatDisplay" class="chat-container"></main>
+
     <div id="typingIndicator" class="hidden px-6 py-4">
         <div class="flex items-center gap-2 text-white/30 font-bold text-[9px] uppercase tracking-widest"><div class="w-2 h-2 bg-white/30 rounded-full animate-bounce"></div> Syncing...</div>
     </div>
+
     <div class="mode-bar">
         <div onclick="setMode('biasa')" class="mode-opt" id="m-biasa">BIASA</div>
         <div onclick="setMode('konten')" class="mode-opt" id="m-konten">KONTEN</div>
@@ -85,6 +130,7 @@
         <div onclick="setMode('white')" class="mode-opt" id="m-white">WHITE</div>
         <div onclick="setDarkAnsain()" class="mode-opt" id="m-dark">DARK</div>
     </div>
+
     <footer class="input-area">
         <div id="musicPlayerContainer" class="mb-3 px-3 py-2 flex items-center justify-between bg-white/5 rounded-xl border border-white/10 backdrop-blur-md">
             <div class="flex items-center gap-3 overflow-hidden">
@@ -105,102 +151,145 @@
             <button onclick="handleProcess()" class="btn-send"><i class="fa-solid fa-paper-plane"></i></button>
         </div>
     </footer>
+
     <script>
         const keys = ["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", "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", "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"];
+        
         let config = JSON.parse(localStorage.getItem('ansain_config')) || { name: '', mode: 'biasa' };
-        let memory = JSON.parse(localStorage.getItem('ansain_history')) || [];
+        let chatSessions = JSON.parse(localStorage.getItem('ansain_sessions')) || [];
+        let currentSessionId = localStorage.getItem('ansain_current_session') || null;
+        let memory = [];
         let currentTrack = new Audio();
 
         const playlist = [
             { name: "PACARKU DITIKUNG TEMEN", url: "https://semantic-teal-t3tdavv7gs.edgeone.app/pacarkuditikungtemen.mp3" },
             { name: "LOFI STUDY", url: "https://files.freemusicarchive.org/storage-freemusicarchive-org/music/no_curator/Ketsa/Raising_Frequencies/Ketsa_-_09_-_Interlude.mp3" }
         ];
-
         const ngodingSong = { name: "PACARKU DITIKUNG TEMEN", url: "https://semantic-teal-t3tdavv7gs.edgeone.app/pacarkuditikungtemen.mp3" };
 
         function updateClock() {
             const now = new Date();
-            const h = String(now.getHours()).padStart(2, '0'), m = String(now.getMinutes()).padStart(2, '0'), s = String(now.getSeconds()).padStart(2, '0');
-            document.getElementById('digitalClock').innerText = `${h}:${m}:${s}`;
+            document.getElementById('digitalClock').innerText = now.toLocaleTimeString('en-GB');
         }
         setInterval(updateClock, 1000); updateClock();
+
+        function toggleSidebar() {
+            const sb = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            const isOpen = sb.classList.contains('active');
+            if(isOpen) {
+                sb.classList.remove('active');
+                overlay.style.display = 'none';
+            } else {
+                renderHistoryList();
+                sb.classList.add('active');
+                overlay.style.display = 'block';
+            }
+        }
+
+        function createNewChat() {
+            currentSessionId = Date.now().toString();
+            memory = [];
+            localStorage.setItem('ansain_current_session', currentSessionId);
+            document.getElementById('chatDisplay').innerHTML = '';
+            appendUI(`halo bos ${config.name}, sesi baru dimulai. ada yang bisa dibantu?`, 'assistant', false);
+            toggleSidebar();
+        }
+
+        function renderHistoryList() {
+            const container = document.getElementById('historyList');
+            container.innerHTML = '';
+            if(chatSessions.length === 0) {
+                container.innerHTML = '<p class="text-[10px] text-white/20 italic">Belum ada obrolan.</p>';
+                return;
+            }
+            [...chatSessions].reverse().forEach(session => {
+                const item = document.createElement('div');
+                item.className = `history-item ${session.id === currentSessionId ? 'active' : ''}`;
+                const title = session.messages.find(m => m.role === 'user')?.content || "Percakapan Baru";
+                item.innerHTML = `
+                    <p class="text-[11px] font-bold text-white truncate">${title}</p>
+                    <p class="text-[8px] text-white/30 uppercase mt-1">${new Date(parseInt(session.id)).toLocaleDateString()}</p>
+                `;
+                item.onclick = () => loadSession(session.id);
+                container.appendChild(item);
+            });
+        }
+
+        function loadSession(id) {
+            const session = chatSessions.find(s => s.id === id);
+            if(!session) return;
+            currentSessionId = id;
+            memory = session.messages;
+            localStorage.setItem('ansain_current_session', id);
+            document.getElementById('chatDisplay').innerHTML = '';
+            memory.forEach(msg => appendUI(msg.content, msg.role, false));
+            toggleSidebar();
+        }
+
+        function saveCurrentSession() {
+            if(!currentSessionId) currentSessionId = Date.now().toString();
+            const idx = chatSessions.findIndex(s => s.id === currentSessionId);
+            if(idx > -1) {
+                chatSessions[idx].messages = memory;
+            } else {
+                chatSessions.push({ id: currentSessionId, messages: memory });
+            }
+            localStorage.setItem('ansain_sessions', JSON.stringify(chatSessions));
+        }
 
         async function loginSystem() {
             const u = document.getElementById('userInputLogin').value.trim();
             const p = document.getElementById('passInputLogin').value.trim();
-            const btn = document.getElementById('loginBtn');
-            const err = document.getElementById('loginError');
+            const btn = document.getElementById('loginBtn'), err = document.getElementById('loginError');
             if(!u || !p) return;
-            btn.disabled = true;
-            btn.innerText = 'VERIFYING...';
-            err.classList.add('hidden');
+            btn.disabled = true; btn.innerText = 'VERIFYING...';
             try {
                 const res = await fetch('./akses.json');
                 const data = await res.json();
-                let match = null;
-                if (Array.isArray(data)) match = data.find(i => i.user === u && i.pw === p);
-                else if (data.user === u && data.pw === p) match = data;
+                let match = Array.isArray(data) ? data.find(i => i.user === u && i.pw === p) : (data.user === u && data.pw === p ? data : null);
                 if(match) {
                     config.name = match.user;
                     localStorage.setItem('ansain_config', JSON.stringify(config));
                     document.getElementById('onboarding').style.display = 'none';
+                    document.getElementById('sideUserName').innerText = config.name;
+                    if(!currentSessionId) createNewChat(); else loadSession(currentSessionId);
                     setMode(config.mode);
                 } else throw new Error();
             } catch {
-                err.classList.remove('hidden');
-                btn.disabled = false;
-                btn.innerText = 'MASUK SISTEM';
+                err.classList.remove('hidden'); btn.disabled = false; btn.innerText = 'MASUK SISTEM';
+            }
+        }
+
+        function logout() {
+            if(confirm('Logout?')) { localStorage.clear(); location.reload(); }
+        }
+
+        function clearAllHistory() {
+            if(confirm('Hapus semua histori permanen?')) {
+                chatSessions = [];
+                localStorage.removeItem('ansain_sessions');
+                createNewChat();
             }
         }
 
         function toggleMusic() {
-            const icon = document.getElementById('playBtnIcon');
-            const disc = document.getElementById('musicIcon');
+            const icon = document.getElementById('playBtnIcon'), disc = document.getElementById('musicIcon');
             if (currentTrack.paused) {
-                if (!currentTrack.src || currentTrack.src === "" || currentTrack.src.includes('null')) playMusic();
-                else {
-                    currentTrack.play().then(() => {
-                        icon.className = "fa-solid fa-pause text-[10px]";
-                        disc.classList.add('animate-spin-slow');
-                    }).catch(() => {
-                        document.getElementById('songTitle').innerText = "STREAM ERROR";
-                    });
-                }
+                if (!currentTrack.src || currentTrack.src.includes('null')) playMusic();
+                else currentTrack.play().then(() => { icon.className = "fa-solid fa-pause text-[10px]"; disc.classList.add('animate-spin-slow'); });
             } else {
-                currentTrack.pause();
-                icon.className = "fa-solid fa-play text-[10px]";
-                disc.classList.remove('animate-spin-slow');
+                currentTrack.pause(); icon.className = "fa-solid fa-play text-[10px]"; disc.classList.remove('animate-spin-slow');
             }
         }
 
         function playMusic() {
-            const icon = document.getElementById('playBtnIcon');
-            const disc = document.getElementById('musicIcon');
-            let selected;
-            if (config.mode === 'ngoding') {
-                selected = ngodingSong;
-                currentTrack.loop = true;
-            } else {
-                selected = playlist[Math.floor(Math.random() * playlist.length)];
-                currentTrack.loop = false;
-            }
+            const icon = document.getElementById('playBtnIcon'), disc = document.getElementById('musicIcon');
+            let selected = config.mode === 'ngoding' ? ngodingSong : playlist[Math.floor(Math.random() * playlist.length)];
             currentTrack.src = selected.url;
+            currentTrack.loop = config.mode === 'ngoding';
             document.getElementById('songTitle').innerText = selected.name.toUpperCase();
-            currentTrack.play().then(() => {
-                icon.className = "fa-solid fa-pause text-[10px]";
-                disc.classList.add('animate-spin-slow');
-            }).catch(() => {
-                document.getElementById('songTitle').innerText = "TAP PLAY TO START";
-                icon.className = "fa-solid fa-play text-[10px]";
-                disc.classList.remove('animate-spin-slow');
-            });
-        }
-
-        currentTrack.onended = () => { if (config.mode !== 'ngoding') playMusic(); };
-
-        function setDarkAnsain() {
-            if(config.name.toLowerCase() !== 'dika' && config.name.toLowerCase() !== 'dikz') { alert("ACCESS DENIED"); return; }
-            setMode('dark');
+            currentTrack.play().then(() => { icon.className = "fa-solid fa-pause text-[10px]"; disc.classList.add('animate-spin-slow'); });
         }
 
         function setMode(m) {
@@ -209,60 +298,43 @@
             if(m === 'white') document.body.classList.add('white-ansain-mode');
             config.mode = m;
             localStorage.setItem('ansain_config', JSON.stringify(config));
-            localStorage.removeItem('ansain_history');
-            memory = [];
-            document.getElementById('chatDisplay').innerHTML = '';
-            playMusic();
-            const transition = document.getElementById('modeTransition');
-            const icon = document.getElementById('modeIcon');
-            icon.className = `fa-solid ${m === 'white' ? 'fa-shield-halved' : m === 'dark' ? 'fa-skull-crossbones' : 'fa-bolt'} text-4xl text-white`;
-            document.getElementById('modeTitle').innerText = "MODE " + m.toUpperCase();
-            transition.style.display = 'flex';
-            setTimeout(() => {
-                transition.style.display = 'none';
-                document.getElementById('labelMode').innerText = 'MODE ' + m;
-                document.querySelectorAll('.mode-opt').forEach(el => el.classList.remove('active'));
-                document.getElementById('m-'+m).classList.add('active');
-                appendUI(`halo bos ${config.name}, mode ${m} aktif.`, 'assistant');
-            }, 800);
+            document.getElementById('labelMode').innerText = 'MODE ' + m;
+            document.querySelectorAll('.mode-opt').forEach(el => el.classList.remove('active'));
+            document.getElementById('m-'+m).classList.add('active');
+        }
+
+        function setDarkAnsain() {
+            if(config.name.toLowerCase() !== 'dika' && config.name.toLowerCase() !== 'dikz') { alert("OWNER ONLY"); return; }
+            setMode('dark');
+        }
+
+        function formatResponse(t) {
+            const codeRegex = /```([a-z]*)\n([\s\S]*?)```/g;
+            return t.replace(codeRegex, (match, lang, code) => {
+                const b64 = btoa(unescape(encodeURIComponent(code.trim())));
+                return `<div class="code-wrapper"><div class="code-header"><div><i class="fa-solid fa-code"></i><span>${lang || 'code'}</span></div></div><pre><code>${code.trim().replace(/</g, "&lt;").replace(/>/g, "&gt;")}</code></pre><div class="copy-btn-container"><div class="copy-btn" onclick="copyFromBase64('${b64}', this)"><i class="fa-regular fa-copy"></i> COPY</div></div></div>`;
+            }).replace(/\n/g, '<br>');
         }
 
         function copyFromBase64(b64, btn) {
             const text = decodeURIComponent(escape(atob(b64)));
-            const el = document.createElement('textarea');
-            el.value = text; document.body.appendChild(el); el.select();
-            try { document.execCommand('copy'); btn.innerHTML = '<i class="fa-solid fa-check text-green-400"></i>'; setTimeout(() => { btn.innerHTML = '<i class="fa-regular fa-copy"></i> COPY'; }, 2000); } catch (err) { alert("Gagal copy."); }
-            document.body.removeChild(el);
-        }
-
-        function getLangIcon(lang) {
-            const icons = { js: 'devicon-javascript-plain colored', javascript: 'devicon-javascript-plain colored', html: 'devicon-html5-plain colored', css: 'devicon-css3-plain colored', python: 'devicon-python-plain colored', py: 'devicon-python-plain colored', php: 'devicon-php-plain colored', sql: 'devicon-mysql-plain colored' };
-            return icons[lang.toLowerCase()] || 'fa-solid fa-code';
-        }
-
-        function formatResponse(t) {
-            let text = t;
-            const openTicks = (text.match(/```/g) || []).length;
-            if (openTicks % 2 !== 0) text += '\n```';
-            const codeRegex = /```([a-z]*)\n([\s\S]*?)```/g;
-            return text.replace(codeRegex, (match, lang, code) => {
-                const cleanCode = code.trim();
-                const b64 = btoa(unescape(encodeURIComponent(cleanCode)));
-                return `<div class="code-wrapper"><div class="code-header"><div><i class="${getLangIcon(lang || 'code')}"></i><span>${lang || 'code'}</span></div></div><pre><code>${cleanCode.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</code></pre><div class="copy-btn-container"><div class="copy-btn" onclick="copyFromBase64('${b64}', this)"><i class="fa-regular fa-copy"></i> COPY</div></div></div>`;
-            }).replace(/\n/g, '<br>');
+            navigator.clipboard.writeText(text);
+            btn.innerHTML = '<i class="fa-solid fa-check text-green-400"></i>';
+            setTimeout(() => { btn.innerHTML = '<i class="fa-regular fa-copy"></i> COPY'; }, 2000);
         }
 
         function autoResize(el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }
-        function clearChat() { if(confirm('Hapus histori chat?')) { localStorage.removeItem('ansain_history'); memory = []; document.getElementById('chatDisplay').innerHTML = ''; } }
 
         function appendUI(txt, role, save = true) {
             const box = document.getElementById('chatDisplay'), bubble = document.createElement('div');
             bubble.className = role === 'user' ? 'bubble-user' : 'bubble-ai';
+            bubble.innerHTML = formatResponse(txt);
             box.appendChild(bubble);
-            if (role === 'assistant' && save) {
-                let i = 0; function typeWriter() { if (i < txt.length) { bubble.innerHTML = formatResponse(txt.substring(0, i + 1)); box.scrollTo({ top: box.scrollHeight }); i++; setTimeout(typeWriter, 10); } else { memory.push({ role, content: txt }); localStorage.setItem('ansain_history', JSON.stringify(memory)); } }
-                typeWriter();
-            } else { bubble.innerHTML = formatResponse(txt); box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' }); if (save) { memory.push({ role, content: txt }); localStorage.setItem('ansain_history', JSON.stringify(memory)); } }
+            box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
+            if (save) {
+                memory.push({ role, content: txt });
+                saveCurrentSession();
+            }
         }
 
         async function handleProcess() {
@@ -270,26 +342,30 @@
             if(!query) return;
             appendUI(query, 'user'); input.value = ''; input.style.height = 'auto';
             document.getElementById('typingIndicator').classList.remove('hidden');
-            let sys = `kamu adalah ansain ai buatan dika. gaya bahasa lowercase, santai, panggil 'bos'. dilarang panggil 'cewe'. dilarang pakai // di kode. mode: ${config.mode}`;
+            let sys = `kamu ansain ai buatan dika. gaya lowercase, santai, panggil bos. dilarang pakai // di kode. mode: ${config.mode}`;
             try {
                 const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
                     method: "POST", headers: { "Authorization": "Bearer " + keys[Math.floor(Math.random()*keys.length)], "Content-Type": "application/json" },
-                    body: JSON.stringify({ model: "llama-3.3-70b-versatile", messages: [{ role: "system", content: sys }, ...memory.slice(-50)] })
+                    body: JSON.stringify({ model: "llama-3.3-70b-versatile", messages: [{ role: "system", content: sys }, ...memory.slice(-20)] })
                 });
                 const data = await res.json();
                 document.getElementById('typingIndicator').classList.add('hidden');
                 appendUI(data.choices[0].message.content, 'assistant');
-            } catch { document.getElementById('typingIndicator').classList.add('hidden'); appendUI("connection error.", 'assistant'); }
+            } catch { document.getElementById('typingIndicator').classList.add('hidden'); appendUI("error.", 'assistant'); }
         }
 
         document.getElementById('userInput').addEventListener("keydown", e => { 
-            if (e.key === "Enter") {
-                e.stopPropagation(); if (e.shiftKey) return;
-                else { e.preventDefault(); const start = e.target.selectionStart, end = e.target.selectionEnd, value = e.target.value; e.target.value = value.substring(0, start) + "\n" + value.substring(end); e.target.selectionStart = e.target.selectionEnd = start + 1; autoResize(e.target); return false; }
-            } 
+            if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleProcess(); } 
         });
 
-        window.onload = () => { if(config.name) { document.getElementById('onboarding').style.display = 'none'; setMode(config.mode); } else document.getElementById('onboarding').style.display = 'flex'; };
+        window.onload = () => { 
+            if(config.name) { 
+                document.getElementById('onboarding').style.display = 'none'; 
+                document.getElementById('sideUserName').innerText = config.name;
+                setMode(config.mode);
+                if(currentSessionId) loadSession(currentSessionId); else createNewChat();
+            } else document.getElementById('onboarding').style.display = 'flex';
+        };
     </script>
 </body>
 </html>
